@@ -1,0 +1,36 @@
+<launch>
+    <arg name="robot_name" value="Bebop2"/> <!--For each robot, specify robot, Motive solid tag name and IP !-->
+    <arg name="robot_ip" value="192.168.2.112"/>
+    <arg name="motive_tage_name" value="Bebop2"/>
+  
+  
+    <group ns="$(arg robot_name)">
+  
+        <param name="tag_name" value="$(arg motive_tage_name)"/>
+  
+        <include file="$(find bebop_driver)/launch/bebop_node.launch">
+           <arg name="ip" value="$(arg robot_ip)"/>
+           <arg name="drone_type" value="bebop2"/>
+        </include>
+  
+        <node name="bebop_controler" pkg="bebop_control" type="Patrol.py" output="screen">
+          <remap from="/bebop/cmd_vel" to="/$(arg robot_name)/bebop/cmd_vel"/>
+        </node>
+  
+        <node name="bebop_controler_gui" pkg="bebop_control" type="gui_patrol.py">
+          <remap from="/bebop/takeoff" to="/$(arg robot_name)/bebop/takeoff"/>
+          <remap from="/bebop/land" to="/$(arg robot_name)/bebop/land"/>
+          <remap from="/set_target_position" to="/$(arg robot_name)/set_target_position"/>
+          <remap from="/start_control" to="/$(arg robot_name)/start_control"/>
+          <remap from="/stop_control" to="/$(arg robot_name)/stop_control"/>
+        </node>
+  
+    </group>
+  
+    <include file="$(find vrpn_client_ros)/launch/sample.launch">
+      <arg name="server" value="192.168.56.1"/>
+  
+    </include>
+    
+  </launch>
+  
