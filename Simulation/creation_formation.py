@@ -1,5 +1,7 @@
 from tkinter import *
-
+''' this program enable the user to create a matrix formation for the simulation by just clicking on the screen.
+the first click will be the drone leader and the other followers. The program will copy the informations to your
+clipboard by pressing a right click. The user can then paste the information in the simulation.'''
 class gui:
     def __init__(self):
         self.fen=Tk()
