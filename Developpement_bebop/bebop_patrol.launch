@@ -1,0 +1,38 @@
+<launch>
+ <!-- Ce fichier est le fichier launch permettant d'initialiser un vol patrouille entre plusieur point  pour un drone 
+ bebop 2 en prenant en compte des obstacles virtuels-->
+    <arg name="robot_name" value="Bebop2"/> <!--For each robot, specify robot, Motive solid tag name and IP !-->
+    <arg name="robot_ip" value="192.168.2.112"/>
+    <arg name="motive_tage_name" value="Bebop1"/>
+  
+  
+    <group ns="$(arg robot_name)">
+  
+        <param name="tag_name" value="$(arg motive_tage_name)"/>
+  
+        <include file="$(find bebop_driver)/launch/bebop_node.launch">
+           <arg name="ip" value="$(arg robot_ip)"/>
+           <arg name="drone_type" value="bebop2"/>
+        </include>
+  
+        <node name="bebop_controler" pkg="bebop_control" type="patrol_obstacle.py" output="screen">
+          <remap from="/bebop/cmd_vel" to="/$(arg robot_name)/bebop/cmd_vel"/>
+        </node>
+  
+        <node name="bebop_controler_gui" pkg="bebop_control" type="gui_patrol.py" output="screen">
+          <remap from="/bebop/takeoff" to="/$(arg robot_name)/bebop/takeoff"/>
+          <remap from="/bebop/land" to="/$(arg robot_name)/bebop/land"/>
+          <remap from="/set_target_position" to="/$(arg robot_name)/set_target_position"/>
+          <remap from="/start_control" to="/$(arg robot_name)/start_control"/>
+          <remap from="/stop_control" to="/$(arg robot_name)/stop_control"/>
+        </node>
+  
+    </group>
+  
+    <include file="$(find vrpn_client_ros)/launch/sample.launch">
+      <arg name="server" value="192.168.56.1"/>
+  
+    </include>
+    
+  </launch>
+  
