@@ -68,6 +68,9 @@ class Sec_drone:
         self.curent_obj=[1,-1] # first point to reach before lauching the patrol
         self.obstacles=[[0.8,0.4]] #list of different obstacles positions
         self.K_objective=1 #strength of the objective atraction
+        self.distance_unit=0.70 #speed of the drone
+        self.distance_emergency=1.2 #distance to the obstacle to launch the emergency
+        self.K_emergency=0.7 #strength of the emergency repulsion
 
         #ROS initialisation (services and topics)
         rospy.init_node('bebopcontroler', anonymous=True)
@@ -127,11 +130,13 @@ class Sec_drone:
             
 
     def set_cam_coord(self,X,Y,Z):
+        '''Set the camera receved coordinates'''
         self.cam_X=X
         self.cam_Y=Y
         self.cam_Z=Z
 
     def set_previous_coord(self,X,Y,Z):
+        '''Set the previous camera coordinates'''
         self.previous_X=X  
         self.previous_Y=Y
         self.previous_Z=Z
@@ -166,6 +171,7 @@ class Sec_drone:
                 
 
     def force_objectif(self,position_obj):
+        ''' function which return the strength of attraction of the objective'''
         K=self.K_objective
         norme=((self.cam_X-position_obj[0])**2+(self.cam_Y-position_obj[1])**2)**(1/2)
         u=[(self.cam_X-position_obj[0])/norme, (self.cam_Y-position_obj[1])/norme]
@@ -173,46 +179,38 @@ class Sec_drone:
 
 
     def calcul_force_repulsion(self,position_ob,urgence,distance,K):
+        ''' function which return the strength of repulsion for one obstacle'''
         norme=((self.cam_X-position_ob[0])**2+(self.cam_Y-position_ob[1])**2)**(1/2)
         u=[(self.cam_X-position_ob[0])/norme, (self.cam_Y-position_ob[1])/norme]
         return [u[0]*K*(urgence/distance)**2,u[1]*K*(urgence/distance)**2]
 
 
     def new_calcul_obstacle(self,objectif):
-        if self.patrol_st==1 and self.control_enable==1:
-            force=self.force_objectif([objectif[0],objectif[1]])#
-            ################## implémentation urgence  ##############
-
-            # objectif=[0,0,0] #x,y,poid total
-            ### définition de l'écart, ici 1m
-            ### définition de l'insertitude, ici 10 cm
-            ##########################################################
-            ################## implémentation urgence  ###############
-            #########################################################
-            distance_unit=0.70
-            urgence = 1.2
-            ### définition de l'importancen de s'écarter contre se rapprocher
-            K_urgence=0.7
-            ### décompte voisin trop proche, trop loin
+        ''' function which calculate the new movement of the drone'''
+        if self.patrol_st==1 and self.control_enable==1: #verification of good initialisation
+            force=self.force_objectif([objectif[0],objectif[1]])
+            distance_unit=self.distance_unit
+            urgence = self.distance_emergency
+            K_urgence=self.K_emergency
             voisin_urgence=[]
             for voisin in self.obstacles:
                 d=self.calcul_distance(voisin[0],voisin[1])
-                rospy.loginfo(d)
                 if d<urgence:
-                    distance_unit=0.30
+                    distance_unit=0.30 #distance unit is reduced when an obstacle is too close
                     voisin_urgence+=[[voisin,d]]
             for voisin in voisin_urgence:
                 new_force=self.calcul_force_repulsion(voisin[0],urgence,voisin[1],K_urgence)
                 force=[force[0]+new_force[0],force[1]+new_force[1]]
             norme=abs(force[0])+abs(force[1])
             force=[force[0]/norme,force[1]/norme]
-            vrai_objectif=[self.cam_X+distance_unit*force[0],self.cam_Y+distance_unit*force[1]] ### division par le poids
+            vrai_objectif=[self.cam_X+distance_unit*force[0],self.cam_Y+distance_unit*force[1]]
             self.traduction_angle(vrai_objectif[0],vrai_objectif[1],1)
         else:
-            self.traduction_angle(self.cam_X,self.cam_Y,1)
+            self.traduction_angle(self.cam_X,self.cam_Y,1) #if the drone is not initialized, the drone doesn't move
 
 
     def traduction_angle(self,x,y,z):
+        ''' function which translate a position desire to pitch, roll yawn, yaw and vertical velocity commands'''
         K1=0.6
         K2=0.4
         K3=1
@@ -247,12 +245,14 @@ class Sec_drone:
         
 
     def handle_set_target_position(self,req):
+        '''function which enable the drone to patrol'''
         #Change target position 
         self.patrol_st=1
         self.flag=True
         return [1]
 
     def handle_start_control(self,req):
+        ''' function which enable the drone to be control'''
             #Start control service
         if (self.cam_position_received==1):
             self.control_enable=1
@@ -263,13 +263,15 @@ class Sec_drone:
 
 
     def handle_stop_control(self,req):
+        ''' function which disable the drone to be control'''
     #Stop control service
         self.control_enable=0
         self.flag=False
-        rospy.loginfo("Stop control");
+        rospy.loginfo("Stop control")
         return [1,""]
     
 def addition_terme_poid(l1,l2):
+    ''' function which add two list term by term with a poise multiplicator'''
     total=[]
     for i in range(len(l1)-1):
         total+=[l1[i]+l2[i]*l2[len(l2)-1]]
@@ -280,6 +282,7 @@ def addition_terme_poid(l1,l2):
 
 
 def talker():
+    '''launch the sequence'''
 
     Drone=Sec_drone([],1)
 
