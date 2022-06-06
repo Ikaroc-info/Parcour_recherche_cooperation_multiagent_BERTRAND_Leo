@@ -7,3 +7,5 @@ Un nommé Simulation, reprenant les codes que j'ai développés afin de réalise
 Un nommé Developpement_bebop, reprenant les codes créés pour les drones bebop-2 fonctionnant dans une architecture ROS et avec le matériel du LORIA (motion capture...)
 
 Un dernier nommé Developpement_craziflie, reprenant les codes créés pour l'utilisation des drones Crazyflies, ils nécessitent un système de positionnement.
+
+Si vous souhaitez accéder à certaine vidéos et photos issues de mon parcours recherche, vous pourrez les retrouver dans ce google drive : https://drive.google.com/drive/folders/1EGYzYYAKSZeLS1Y59vx8aCk63kI6Jjhf?usp=sharing
