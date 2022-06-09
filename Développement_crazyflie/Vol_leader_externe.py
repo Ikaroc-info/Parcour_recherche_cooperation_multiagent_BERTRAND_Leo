@@ -1,42 +1,5 @@
-# -*- coding: utf-8 -*-
-#
-#     ||          ____  _ __
-#  +------+      / __ )(_) /_______________ _____  ___
-#  | 0xBC |     / __  / / __/ ___/ ___/ __ `/_  / / _ \
-#  +------+    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
-#   ||  ||    /_____/_/\__/\___/_/   \__,_/ /___/\___/
-#
-#  Copyright (C) 2017-2018 Bitcraze AB
-#
-#  Crazyflie Nano Quadcopter Client
-#
-#  This program is free software; you can redistribute it and/or
-#  modify it under the terms of the GNU General Public License
-#  as published by the Free Software Foundation; either version 2
-#  of the License, or (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <https://www.gnu.org/licenses/>.
-"""
-Version of the AutonomousSequence.py example connecting to 10 Crazyflies.
-The Crazyflies go straight up, hover a while and land but the code is fairly
-generic and each Crazyflie has its own sequence of setpoints that it files
-to.
-The layout of the positions:
-    x2      x1      x0
-y3  10              4
-            ^ Y
-            |
-y2  9       6       3
-            |
-            +------> X
-y1  8       5       2
-y0  7               1
-"""
+'''This code will launch a group of drones in a formation. The leader will not move, but the followers will
+the position of the leader (if it moves with an exterior way)'''
 import time
 
 import cflib.crtp
@@ -97,9 +60,19 @@ class Sec_drone:
         self.i=0
         self.tmp_point=[0,0,0.2]
         self.origin=[0,0,0]
+        #fly modifications
+        self.distance_between_drone=0.7 #distance between drones in the formation
+        self.K_objectif=1 #strength of the force of the objectif
+        self.K_urgence=0.7 #strength of the force of the repulsion in emergency situation
+        self.K_eloignement=0.5#strength of the force of the repulsion and attraction of the drones
+        self.distance_unit=0.9 #strength of the movements
+        self.urgence = 0.1 #distance of the emergency situation
+        self.incertitude=0.1 #% of incertitude on the poisition tolerated
+
 
 
     def set_cam_coord(self,X,Y,Z):
+        ''' function which set the position atributes of the drone'''
         if self.origin==[0,0,0]:
             self.origin=[X,Y,Z]
         self.cam_X=X
@@ -107,43 +80,49 @@ class Sec_drone:
         self.cam_Z=Z
 
     def set_previous_coord(self,X,Y,Z):
+        ''' function which set the position previous atributes of the drone'''
         self.previous_X=X  
         self.previous_Y=Y
         self.previous_Z=Z
     
     def add_voisin(self,voisin):
-        self.voisin.append([voisin,0.7])
-#### initier avec un topic ROS, un par formation
+        '''fuctions which add a voisin to the list of voisin o the drone'''
+        self.voisin.append([voisin,self.distance_between_drone])
 
     def get_vitesse_X_Y_Z(self):
+        ''' function which return the velocity of the drone'''
         return[(self.cam_X-self.previous_X)/0.02,(self.cam_Y-self.previous_Y)/0.02,(self.cam_Z-self.previous_Z)/0.02]
 
     def get_Cam_X_Y_Z(self):
-            return [self.cam_X,self.cam_Y,self.cam_Z]
+        ''' function which return the position of the drone'''
+        return [self.cam_X,self.cam_Y,self.cam_Z]
     
     def calcul_distance(self,x,y):
-            return ((self.cam_X-x)**2+(self.cam_Y-y)**2)**(1/2)
-      
+        ''' function which return the distance between the drone and the object'''
+        return abs(self.cam_X-x)+abs(self.cam_Y-y)
                 
     def force_objectif(self,position_obj):
-        K=1
+        '''calcul the force of the objectif'''
+        K=self.K_objectif
         norme=((self.cam_X-position_obj[0])**2+(self.cam_Y-position_obj[1])**2)**(1/2)
         u=[(self.cam_X-position_obj[0])/norme, (self.cam_Y-position_obj[1])/norme]
         return [-u[0]*K,-u[1]*K]
 
-
-    def calcul_force_repulsion_urgence(self,position_ob,urgence,distance,K):
+    def calcul_force_repulsion(self,position_ob,urgence,distance,K):
+        '''calcul the force of the repulsion of obstacles'''
         norme=((self.cam_X-position_ob[0])**2+(self.cam_Y-position_ob[1])**2)**(1/2)
         u=[(self.cam_X-position_ob[0])/norme, (self.cam_Y-position_ob[1])/norme]
         return [u[0]*K*(urgence/distance)**2,u[1]*K*(urgence/distance)**2]
 
     def calcul_force_ideale(self,Drone,distance):
+        '''calcul the force of the ideal position between two drones'''
         norme=((self.cam_X-Drone.cam_X)**2+(self.cam_Y-Drone.cam_Y)**2)**(1/2)
         u=[(self.cam_X-Drone.cam_X)/norme, (self.cam_Y-Drone.cam_Y)/norme]
         positon_ideal=[Drone.cam_X+u[0]*distance,Drone.cam_Y+u[1]*distance]
         return [positon_ideal[0]-self.cam_X,positon_ideal[1]-self.cam_Y]
 
     def new_calcul(self,c_time):
+            ''' function which calculate the new movement of the drone'''
             if self.leader==1:
                 if c_time//10==0:
                     self.tmp_point=[self.origin[0],self.origin[1],0.3]
@@ -151,14 +130,12 @@ class Sec_drone:
                     self.tmp_point=[self.origin[0]+0.3,self.origin[1]+0.3,0.3]
             else :
                 force=[0,0]
-                distance_unit=0.9
-                urgence = 0.1
-                delta=0.1
-                ### définition de l'importance de s'écarter contre se rapprocher
-                K_eloignement=0.5
-                K_urgence=0.7
 
-                ### décompte voisin trop proche, trop loin
+                delta=self.incertitude
+                K_eloignement=self.K_eloignement
+                distance_unit=self.distance_unit
+                urgence =self.urgence
+                K_urgence=self.K_urgence
                 voisin_trop_proche=[]
                 voisin_trop_loin=[]
                 voisin_urgence=[]
@@ -174,17 +151,12 @@ class Sec_drone:
                         voisin_trop_loin+=[voisin]
 
                 for voisin in voisin_urgence:
-                    print("trop proche")
                     new_force=self.calcul_force_repulsion_urgence(voisin[0],urgence,voisin[1],K_urgence)
                     force=addition_terme_poid(force,new_force+[1]) 
-                    
                 for voisin in voisin_trop_proche:
-                    print("trop proche")
                     new_position=self.calcul_force_ideale(voisin[0],voisin[1])
-                    force=addition_terme_poid(force,new_position+[K_eloignement]) 				
-              				
+                    force=addition_terme_poid(force,new_position+[K_eloignement]) 					
                 for voisin in voisin_trop_loin:
-                    print("trop loin")
                     new_position=self.calcul_force_ideale(voisin[0],voisin[1])
                     force=addition_terme_poid(force,new_position+[K_eloignement]) 
                 norme=(force[0]**2+(force[1])**2)**(1/2)
@@ -198,13 +170,14 @@ class Sec_drone:
 
 
 def addition_terme_poid(l1,l2):
+    ''' function which return the addition of two list with a multiplication of the poid'''
     total=[]
     for i in range(len(l2)-1):
         total+=[l1[i]+l2[i]*l2[len(l2)-1]]
     return total
 
 def seq_unaire(Drone,cf,c_time):
-
+    '''sequence that will be executed by the drone'''
     coord=Drone.get_Cam_X_Y_Z()
     Drone.set_previous_coord(coord[0],coord[1],coord[2])
     position=swarm.get_estimated_positions()[cf.link_uri]
@@ -217,6 +190,7 @@ def seq_unaire(Drone,cf,c_time):
 
 
 def run_sequence(scf):
+    ''' function which execute the sequence of the drone'''
     global Dict_link_Sec_drone
     cf = scf.cf
     drone=Dict_link_Sec_drone[cf.link_uri]
@@ -227,15 +201,9 @@ def run_sequence(scf):
         seq_unaire(drone,cf,c_time)
         time.sleep(0.2)
 
-    
-
-    
-    #sequence à effectuer
-
 
 
 if __name__ == '__main__':
-    # logging.basicConfig(level=logging.DEBUG)
     cflib.crtp.init_drivers()
 
     factory = CachedCfFactory(rw_cache='./cache')

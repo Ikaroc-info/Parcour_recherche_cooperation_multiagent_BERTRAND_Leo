@@ -1,42 +1,6 @@
-# -*- coding: utf-8 -*-
-#
-#     ||          ____  _ __
-#  +------+      / __ )(_) /_______________ _____  ___
-#  | 0xBC |     / __  / / __/ ___/ ___/ __ `/_  / / _ \
-#  +------+    / /_/ / / /_/ /__/ /  / /_/ / / /_/  __/
-#   ||  ||    /_____/_/\__/\___/_/   \__,_/ /___/\___/
-#
-#  Copyright (C) 2017-2018 Bitcraze AB
-#
-#  Crazyflie Nano Quadcopter Client
-#
-#  This program is free software; you can redistribute it and/or
-#  modify it under the terms of the GNU General Public License
-#  as published by the Free Software Foundation; either version 2
-#  of the License, or (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <https://www.gnu.org/licenses/>.
-"""
-Version of the AutonomousSequence.py example connecting to 10 Crazyflies.
-The Crazyflies go straight up, hover a while and land but the code is fairly
-generic and each Crazyflie has its own sequence of setpoints that it files
-to.
-The layout of the positions:
-    x2      x1      x0
-y3  10              4
-            ^ Y
-            |
-y2  9       6       3
-            |
-            +------> X
-y1  8       5       2
-y0  7               1
-"""
+'''This code enable the user to give instruction to multiple crazyflies simultaneously as a formation with a combination of a formation
+Matrix and a sequence of position. The formation matrix is a list of list of int. Each int is the distance between the drone and the
+leader.'''
 import time
 
 import cflib.crtp
@@ -84,6 +48,7 @@ seq_format = [
 ]
 
 def transfo_seq_format(seq_format,format):
+    '''This function transform the sequence of position of the formation to a sequence for each drone'''
     true_seq=[]
     for i in range(len(format)):
         true_seq+=[[]]
